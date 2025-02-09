@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    networks:
+      - elk-clickhouse-network
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.2
+    container_name: logstash
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    environment:
+      - LS_JAVA_OPTS=-Xms512m -Xmx512m
+    depends_on:
+      - elasticsearch
+    networks:
+      - elk-clickhouse-network
+
+  clickhouse:
+    image: yandex/clickhouse-server:latest
+    container_name: clickhouse
+    ports:
+      - "8123:8123"  # HTTP API port
+      - "9000:9000"  # Native protocol port
+    volumes:
+      - ./clickhouse-data:/var/lib/clickhouse
+    networks:
+      - elk-clickhouse-network
+
+networks:
+  elk-clickhouse-network:
+    driver: bridge
